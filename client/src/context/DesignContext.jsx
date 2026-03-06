@@ -1,24 +1,41 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const DesignContext = createContext();
 
+// Load from sessionStorage to survive navigation
+function loadState(key, defaultValue) {
+  try {
+    const saved = sessionStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
 export function DesignProvider({ children }) {
   // Room state (all measurements in meters)
-  const [room, setRoom] = useState({
-    width: 5,       // meters
-    length: 4,      // meters
-    height: 2.7,    // meters
+  const [room, setRoom] = useState(() => loadState('design_room', {
+    width: 5,
+    length: 4,
+    height: 2.7,
     wallColor: "#f5f5f5",
     floorColor: "#c2b280"
-  });
+  }));
 
   // Placed furniture items
-  // Each item: { id, modelId, x, z, rotation, scale }
-  // x and z are in meters (not pixels)
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => loadState('design_items', []));
 
-  // Selected item for editing
+  // Selected item
   const [selectedItemId, setSelectedItemId] = useState(null);
+
+  // Persist to sessionStorage on changes
+  useEffect(() => {
+    sessionStorage.setItem('design_room', JSON.stringify(room));
+  }, [room]);
+
+  useEffect(() => {
+    sessionStorage.setItem('design_items', JSON.stringify(items));
+  }, [items]);
 
   // Add a new item
   const addItem = useCallback((item) => {
@@ -35,10 +52,8 @@ export function DesignProvider({ children }) {
   // Delete an item
   const deleteItem = useCallback((id) => {
     setItems(prev => prev.filter(item => item.id !== id));
-    if (selectedItemId === id) {
-      setSelectedItemId(null);
-    }
-  }, [selectedItemId]);
+    setSelectedItemId(prev => prev === id ? null : prev);
+  }, []);
 
   // Clear all items
   const clearItems = useCallback(() => {

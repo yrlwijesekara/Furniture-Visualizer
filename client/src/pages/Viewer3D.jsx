@@ -26,12 +26,12 @@ export default function Viewer3D() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
 
-    // Camera - positioned to see the entire room
+    // Camera
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     camera.position.set(
-      room.width / 2,             // Center X
-      room.height * 1.5,          // Above room
-      room.length + room.length   // Behind room
+      room.width / 2,
+      room.height * 1.5,
+      room.length + room.length * 0.8
     );
 
     // Renderer
@@ -39,7 +39,7 @@ export default function Viewer3D() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap; // Fixed: was PCFSoftShadowMap (deprecated)
     mountRef.current.appendChild(renderer.domElement);
 
     // === LIGHTS ===
@@ -51,24 +51,18 @@ export default function Viewer3D() {
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.near = 0.1;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -room.width;
-    directionalLight.shadow.camera.right = room.width;
-    directionalLight.shadow.camera.top = room.length;
-    directionalLight.shadow.camera.bottom = -room.length;
     scene.add(directionalLight);
 
     const pointLight = new THREE.PointLight(0xffffff, 0.4);
     pointLight.position.set(room.width / 2, room.height - 0.3, room.length / 2);
     scene.add(pointLight);
 
-    // === ROOM GEOMETRY ===
+    // === ROOM ===
     // Coordinate system:
-    // Origin (0, 0, 0) = bottom-left-back corner of room
-    // X-axis: left to right (0 to room.width)
-    // Y-axis: bottom to top (0 to room.height)
-    // Z-axis: back to front (0 to room.length)
+    // Origin (0,0,0) = back-left corner at floor level
+    // X: 0 → room.width  (left to right)
+    // Y: 0 → room.height (floor to ceiling)
+    // Z: 0 → room.length (back to front)
 
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(room.width, room.length);
@@ -88,11 +82,10 @@ export default function Viewer3D() {
       roughness: 0.9,
       side: THREE.DoubleSide
     });
-    const wallThickness = 0.05;
 
     // Back wall (z = 0)
     const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(room.width, room.height, wallThickness),
+      new THREE.BoxGeometry(room.width, room.height, 0.05),
       wallMaterial
     );
     backWall.position.set(room.width / 2, room.height / 2, 0);
@@ -101,7 +94,7 @@ export default function Viewer3D() {
 
     // Left wall (x = 0)
     const leftWall = new THREE.Mesh(
-      new THREE.BoxGeometry(wallThickness, room.height, room.length),
+      new THREE.BoxGeometry(0.05, room.height, room.length),
       wallMaterial
     );
     leftWall.position.set(0, room.height / 2, room.length / 2);
@@ -110,17 +103,12 @@ export default function Viewer3D() {
 
     // Right wall (x = room.width)
     const rightWall = new THREE.Mesh(
-      new THREE.BoxGeometry(wallThickness, room.height, room.length),
+      new THREE.BoxGeometry(0.05, room.height, room.length),
       wallMaterial
     );
     rightWall.position.set(room.width, room.height / 2, room.length / 2);
     rightWall.receiveShadow = true;
     scene.add(rightWall);
-
-    // === AXES HELPER (debug - remove in production) ===
-    // Red = X (width), Green = Y (height), Blue = Z (length)
-    const axesHelper = new THREE.AxesHelper(2);
-    scene.add(axesHelper);
 
     // === ORBIT CONTROLS ===
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -129,16 +117,16 @@ export default function Viewer3D() {
     controls.dampingFactor = 0.05;
     controls.minDistance = 1;
     controls.maxDistance = 30;
-    controls.maxPolarAngle = Math.PI / 2; // Don't go below floor
+    controls.maxPolarAngle = Math.PI * 0.85;
     controls.update();
 
     // === LOAD FURNITURE ===
     const loader = new GLTFLoader();
     const loadedModels = [];
 
-    console.log("=== 3D VIEWER DEBUG ===");
-    console.log("Room:", { width: room.width, length: room.length, height: room.height });
-    console.log("Items to load:", items.length);
+    console.log("=== 3D VIEWER ===");
+    console.log("Room:", room.width, "x", room.length, "x", room.height);
+    console.log("Items:", items.length);
 
     items.forEach((item) => {
       const modelData = getModelById(item.modelId);
@@ -147,65 +135,71 @@ export default function Viewer3D() {
         return;
       }
 
-      console.log(`Loading: ${modelData.name} | 2D pos: (${item.x.toFixed(2)}, ${item.z.toFixed(2)}) meters`);
-
       loader.load(
         modelData.modelPath,
         (gltf) => {
           const model = gltf.scene;
 
-          // Calculate bounding box to properly position model
+          // Step 1: Get the model's bounding box BEFORE scaling
           const box = new THREE.Box3().setFromObject(model);
-          const modelSize = new THREE.Vector3();
-          box.getSize(modelSize);
+          const size = new THREE.Vector3();
+          const center = new THREE.Vector3();
+          box.getSize(size);
+          box.getCenter(center);
 
-          // Apply scale
-          const finalScale = modelData.defaultScale * item.scale;
-          model.scale.set(finalScale, finalScale, finalScale);
-
-          // Position: Direct mapping from 2D editor
-          // 2D: x = left to right (0 to room.width)
-          // 2D: z = top to bottom  (0 to room.length) 
-          // 3D: x = left to right  (0 to room.width)   ✓ same
-          // 3D: z = back to front  (0 to room.length)  ✓ same
-          // 3D: y = height (model sits on floor)
+          // Step 2: Recenter the model so its bottom-center is at origin
+          // This ensures consistent positioning regardless of model origin
           model.position.set(
+            -center.x,       // Center horizontally
+            -box.min.y,      // Bottom sits at y=0
+            -center.z        // Center depth-wise
+          );
+
+          // Step 3: Wrap in a group for clean transforms
+          const group = new THREE.Group();
+          group.add(model);
+
+          // Step 4: Apply scale
+          const finalScale = modelData.defaultScale * item.scale;
+          group.scale.set(finalScale, finalScale, finalScale);
+
+          // Step 5: Position from 2D editor (meters)
+          // x: left-right in room (0 to room.width)
+          // z: top-bottom in 2D = back-front in 3D (0 to room.length)
+          group.position.set(
             item.x,
             modelData.yOffset,
             item.z
           );
 
-          // Rotation
-          const totalRotation = THREE.MathUtils.degToRad(item.rotation) + modelData.defaultRotationY;
-          model.rotation.y = totalRotation;
+          // Step 6: Rotation
+          group.rotation.y = THREE.MathUtils.degToRad(item.rotation) + modelData.defaultRotationY;
 
-          // Shadows
-          model.traverse((child) => {
+          // Step 7: Shadows
+          group.traverse((child) => {
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
             }
           });
 
-          scene.add(model);
-          loadedModels.push(model);
+          scene.add(group);
+          loadedModels.push(group);
 
-          console.log(`  → 3D position: (${model.position.x.toFixed(2)}, ${model.position.y.toFixed(2)}, ${model.position.z.toFixed(2)})`);
+          console.log(`✓ ${modelData.name} → pos(${item.x.toFixed(2)}, ${modelData.yOffset}, ${item.z.toFixed(2)}) | modelSize(${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)})`);
         },
         undefined,
         (error) => {
-          console.error(`Error loading ${modelData.name}:`, error);
+          console.error(`✗ Error loading ${modelData.name}:`, error);
         }
       );
     });
 
     // Handle resize
     const handleResize = () => {
-      const newWidth = window.innerWidth;
-      const newHeight = window.innerHeight;
-      camera.aspect = newWidth / newHeight;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, newHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
 
@@ -287,18 +281,19 @@ export default function Viewer3D() {
           color: '#fff',
           borderRadius: '8px',
           fontSize: '11px',
-          maxWidth: '350px',
+          maxWidth: '400px',
           maxHeight: '200px',
           overflow: 'auto',
           zIndex: 10
         }}
       >
-        <strong>Item Positions (meters):</strong>
+        <strong>Items ({items.length}):</strong>
+        {items.length === 0 && <div style={{ color: '#e74c3c' }}>No items! Go back to 2D Editor and place furniture.</div>}
         {items.map((item, idx) => {
           const model = getModelById(item.modelId);
           return (
             <div key={idx} style={{ marginTop: '4px' }}>
-              {model?.name}: x={item.x.toFixed(2)}, z={item.z.toFixed(2)}, rot={item.rotation}°
+              {model?.name}: x={item.x.toFixed(2)}m, z={item.z.toFixed(2)}m, rot={item.rotation}°, scale={item.scale}x
             </div>
           );
         })}
