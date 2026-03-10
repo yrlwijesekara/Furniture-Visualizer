@@ -56,6 +56,9 @@ export default function Header() {
                    <Link to="/viewer-3d" className="text-base xl:text-xl font-semibold hover:text-white hover:scale-110 transition-transform duration-200">
                        Viewer 3D
                    </Link>
+                     <Link to="/profile" className="text-base xl:text-xl font-semibold hover:text-white hover:scale-110 transition-transform duration-200">
+                          profile
+                        </Link>
                </nav>
 
                {/* Right Side - Cart and Auth */}
@@ -119,6 +122,14 @@ export default function Header() {
                        >
                            <HiMail className="text-2xl" />
                            Viewer 3D
+                       </Link>
+                       <Link 
+                           to="/profile" 
+                           className="text-lg font-semibold hover:text-white transition-colors py-2 flex items-center gap-3"
+                           onClick={() => setIsMenuOpen(false)}
+                       >
+                           <HiMail className="text-2xl" />
+                           profile
                        </Link>
                        {isLoggedIn && (
                            <button

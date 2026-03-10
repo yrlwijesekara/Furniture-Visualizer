@@ -52,6 +52,7 @@ export function loginUser(req, res) {
             const isPasswordValid = bcrypt.compareSync(password, user.password);
             if(isPasswordValid){
                 const token = jwt.sign({
+                    id: user._id,
                     email: user.email,
                     firstname: user.firstname,
                     lastname: user.lastname,
@@ -181,7 +182,7 @@ export async function resetPassword(req, res) {
     const user = await User.findOneAndUpdate(
       { email },
       { password: passwordHash },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!user) {
@@ -197,3 +198,77 @@ export async function resetPassword(req, res) {
     res.status(500).json({ message: 'Error resetting password', error: error.message });
   }
 }
+
+// Get user profile
+export function getUserProfile(req, res) {
+    if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    console.log('Getting profile for user ID:', req.user.id);
+    console.log('Full req.user object:', req.user);
+    
+    User.findById(req.user.id).select('-password')
+        .then((user) => {
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            res.status(200).json(user);
+        })
+        .catch((error) => res.status(500).json({ error: error.message }));
+}
+
+// Update user profile
+export function updateUserProfile(req, res) {
+    if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    console.log('Updating profile for user ID:', req.user.id);
+    console.log('Full req.user object:', req.user);
+    
+    const { firstname, lastname, email, phone, address, city } = req.body;
+
+    // Validation
+    if (!firstname || !lastname || !email || !phone) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+
+    const phoneRegex = /^\d{10,}$/;
+    if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
+        return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
+    }
+
+    User.findByIdAndUpdate(
+        req.user.id,
+        {
+            firstname,
+            lastname,
+            email,
+            phone,
+            
+        },
+        {
+            returnDocument: 'after',
+            runValidators: true
+        }
+    ).select('-password')
+        .then((user) => {
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            res.status(200).json({ message: "Profile updated successfully", user });
+        })
+        .catch((error) => {
+            if (error.code === 11000) {
+                return res.status(400).json({ error: "Email already exists" });
+            }
+            res.status(400).json({ error: error.message });
+        });
+}
+

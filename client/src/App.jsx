@@ -18,6 +18,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 import Registration from './pages/registrationPage.jsx';
 import ForgotPassword from './pages/forgottenpassword.jsx';
+import Profile from './pages/profile.jsx';
 
 function App() {
   return (
@@ -56,6 +57,9 @@ function App() {
           } />
           <Route path="/viewer-3d" element={
             <Viewer3D />
+          } />
+          <Route path="/profile" element={
+            <Profile />
           } />
           <Route path="/register" element={<Registration />} />
           <Route path="/registration" element={<Registration />} />
