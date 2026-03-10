@@ -265,13 +265,22 @@ export default function Cart() {
                                             {/* Product Image */}
                                             <div className="w-full sm:w-32 h-32 flex-shrink-0">
                                                 <img
-                                                    src={item.image || 'https://via.placeholder.com/400x300/f3f4f6/9ca3af?text=Furniture'}
+                                                    src={item.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkZ1cm5pdHVyZTwvdGV4dD48L3N2Zz4='}
                                                     alt={item.name}
                                                     className="w-full h-32 object-cover rounded-md bg-gray-100" 
                                                     onError={(e) => {
-                                                        e.target.src = 'https://via.placeholder.com/400x300/f3f4f6/9ca3af?text=No+Image';
+                                                        // Use a simple colored div as final fallback
+                                                        e.target.style.display = 'none';
+                                                        const fallback = e.target.nextElementSibling;
+                                                        if (fallback) fallback.style.display = 'flex';
                                                     }}
                                                 />
+                                                <div 
+                                                    style={{ display: 'none' }}
+                                                    className="w-full h-32 bg-slate-600 rounded-md flex items-center justify-center text-slate-300 text-sm"
+                                                >
+                                                    🪑 {item.name || 'Furniture'}
+                                                </div>
                                             </div>
                                             
                                             {/* Product Details */}
