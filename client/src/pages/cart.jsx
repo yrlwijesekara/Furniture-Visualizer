@@ -164,7 +164,11 @@ export default function Cart() {
             };
             
             const apiUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-            await axios.post(`${apiUrl}/api/admin/orders`, orderData);
+            await axios.post(`${apiUrl}/api/admin/orders`, orderData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
             
             // Clear cart and form
             localStorage.removeItem('furnitureCart');

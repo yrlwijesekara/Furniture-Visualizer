@@ -1,4 +1,21 @@
 import Order from '../models/order.js';
+import jwt from 'jsonwebtoken';
+
+// Helper function to extract user ID from token
+const getUserIdFromToken = (authHeader) => {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+    
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded.id || decoded.userId;
+    } catch (error) {
+        console.error('Token verification failed:', error);
+        return null;
+    }
+};
 
 // Create a new order
 export const createOrder = async (req, res) => {
@@ -61,8 +78,13 @@ export const createOrder = async (req, res) => {
             });
         }
 
+        // Extract user ID from authorization header if present
+        const authHeader = req.headers.authorization;
+        const userId = getUserIdFromToken(authHeader);
+        
         // Create new order
         const newOrder = new Order({
+            userId: userId, // Will be null for guest orders
             customer,
             roomSetup,
             items,
@@ -262,19 +284,31 @@ export const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Get orders by customer email
+// Get orders by customer email or user ID
 export const getOrdersByCustomer = async (req, res) => {
     try {
         const { email } = req.params;
+        const authHeader = req.headers.authorization;
+        const userId = getUserIdFromToken(authHeader);
 
-        if (!email) {
+        if (!email && !userId) {
             return res.status(400).json({
                 success: false,
-                message: 'Customer email is required'
+                message: 'Customer email or authentication required'
             });
         }
 
-        const orders = await Order.findByCustomerEmail(email);
+        let orders = [];
+        
+        // If user is authenticated, get orders by user ID first
+        if (userId) {
+            orders = await Order.find({ userId: userId }).sort({ createdAt: -1 });
+        }
+        
+        // If no orders found by user ID or user not authenticated, try by email
+        if (orders.length === 0 && email) {
+            orders = await Order.find({ 'customer.email': email }).sort({ createdAt: -1 });
+        }
 
         res.status(200).json({
             success: true,
