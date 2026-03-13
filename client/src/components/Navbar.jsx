@@ -61,13 +61,21 @@ export default function Header() {
           >
             Furniture
           </Link>
+          
           <Link
+            to="/editor-2d"
+            className="font-montserrat font-normal text-[18px] leading-[22px] text-white hover:opacity-80 transition-opacity"
+          >
+            Design
+          </Link>
+           <Link
             to="/profile"
             className="font-montserrat font-normal text-[18px] leading-[22px] text-white hover:opacity-80 transition-opacity"
           >
-            Profile
+            profile
           </Link>
         </div>
+        
 
         {/* Right Icons */}
         <div className="ml-auto flex items-center gap-0">
