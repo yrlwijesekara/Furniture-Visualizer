@@ -1,6 +1,34 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
+
+const FALLBACK_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%25' height='100%25' fill='%23f3f4f6'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='Arial' font-size='20'>No Image</text></svg>";
+
+// Helper function to extract final image from array or string
+const getFinalImage = (imageData) => {
+  if (!imageData) return null;
+  
+  // If it's already an array, get the last element
+  if (Array.isArray(imageData)) {
+    return imageData.length > 0 ? imageData[imageData.length - 1] : null;
+  }
+  
+  // If it's a string, try to parse as JSON array first
+  if (typeof imageData === 'string') {
+    try {
+      const parsed = JSON.parse(imageData);
+      if (Array.isArray(parsed)) {
+        return parsed.length > 0 ? parsed[parsed.length - 1] : null;
+      }
+    } catch (e) {
+      // Not JSON, treat as single image URL
+      return imageData;
+    }
+    return imageData;
+  }
+  
+  return null;
+};
 
 export default function FurnitureCard(props) {
   // Handle different prop naming patterns and provide fallback
@@ -9,6 +37,13 @@ export default function FurnitureCard(props) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+
+  // Memoize the final image extraction to prevent recalculation on every render
+  const displayImage = useMemo(() => {
+    const finalImg = getFinalImage(furniture?.image);
+    console.log('Final image extracted:', finalImg, 'from:', furniture?.image);
+    return finalImg;
+  }, [furniture?.image]);
 
   // Early return if no furniture data
   if (!furniture || Object.keys(furniture).length === 0) {
@@ -51,10 +86,22 @@ export default function FurnitureCard(props) {
 
   // Debug image URL
   useEffect(() => {
-    if (furniture?.image) {
-      console.log('Furniture image URL:', furniture.image);
+    if (displayImage) {
+      console.log('Display image for rendering:', displayImage);
     }
-  }, [furniture?.image]);
+  }, [displayImage]);
+
+  useEffect(() => {
+    setImageError(false);
+    setImageLoading(true);
+
+    // Set a timeout to hide loader if image doesn't load
+    const loadTimeout = setTimeout(() => {
+      setImageLoading(false);
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(loadTimeout);
+  }, [displayImage]);
 
   const addToCart = (item) => {
     try {
@@ -82,17 +129,21 @@ export default function FurnitureCard(props) {
     <div className="w-full max-w-full sm:max-w-100 h-auto min-h-90 sm:min-h-112.5 rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 flex flex-col bg-white hover:shadow-xl hover:scale-102 transition-all duration-300 overflow-hidden gap-2">
       <div className="relative w-full h-44 sm:h-56 lg:h-64 mb-2 sm:mb-3">
         {imageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
           </div>
         )}
         <img
-          src={imageError ? "https://via.placeholder.com/400x300/f3f4f6/9ca3af?text=No+Image" : (furniture?.image || "https://via.placeholder.com/400x300/f3f4f6/9ca3af?text=Furniture")}
-          className={`w-full h-full object-cover rounded-lg cursor-pointer transition-opacity ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
-          
-          onLoad={() => setImageLoading(false)}
+          key={displayImage || 'fallback'}
+          src={imageError || !displayImage ? FALLBACK_IMAGE : displayImage}
+          className={`w-full h-full object-cover rounded-lg cursor-pointer transition-opacity duration-300 ${imageLoading && displayImage && !imageError ? 'opacity-0' : 'opacity-100'}`}
+          onLoad={() => {
+            console.log('Image loaded successfully:', displayImage);
+            setImageLoading(false);
+            setImageError(false);
+          }}
           onError={() => {
-            console.log('Image failed to load:', furniture?.image);
+            console.error('Image failed to load, using fallback:', displayImage);
             setImageError(true);
             setImageLoading(false);
           }}

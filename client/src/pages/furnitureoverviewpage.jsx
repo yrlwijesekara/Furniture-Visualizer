@@ -204,9 +204,11 @@ export default function FurnitureOverviewPage() {
 									<p className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30">
 										{item.category}
 									</p>
-									<p className="text-slate-300 mt-4 leading-relaxed">
-										{item.description || "No description available for this furniture item."}
-									</p>
+									{item.description?.trim() && (
+										<p className="text-slate-300 mt-4 leading-relaxed wrap-break-word whitespace-pre-line max-h-36 overflow-y-auto pr-1">
+											{item.description}
+										</p>
+									)}
 								</div>
 
 								<div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-5">
@@ -260,23 +262,7 @@ export default function FurnitureOverviewPage() {
 								<div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-5">
 									<h3 className="text-lg font-semibold text-white mb-3">Actions</h3>
 									<div className="space-y-3">
-										<button
-											onClick={handleAddToCart}
-											disabled={!isLoggedIn}
-											className="w-full font-semibold py-3 rounded-lg transition-colors duration-200"
-											style={{
-												backgroundColor: !isLoggedIn ? "#95a5a6" : "#3498db",
-												color: !isLoggedIn ? "#7f8c8d" : "white",
-												cursor: !isLoggedIn ? "not-allowed" : "pointer",
-												opacity: !isLoggedIn ? 0.7 : 1,
-											}}
-										>
-											{!isLoggedIn
-												? "Login to Add to Cart"
-												: isInCart
-													? "Update Cart"
-													: "Add to Cart"}
-										</button>
+										
 
 										<button
 											onClick={handleBuyNow}
@@ -291,29 +277,26 @@ export default function FurnitureOverviewPage() {
 										>
 											{!isLoggedIn ? "Login to Continue" : "Buy Now"}
 										</button>
-
-										<button
+                                        <button
 											onClick={() => navigate("/furniture")}
 											className="w-full font-medium py-3 rounded-lg border border-slate-400 text-slate-200 hover:bg-white/10 transition-colors duration-200"
 										>
-											Back to Furniture List
+                                            Back to Furniture List
+                                            
+											
+										</button>
+
+										<button
+											onClick={() => navigate("/viewer-3d")}
+											className="w-full font-medium py-3 rounded-lg border border-slate-400 text-slate-200 hover:bg-white/10 transition-colors duration-200"
+										>
+											
+                                            view 3D 
 										</button>
 									</div>
 								</div>
 
-								{modelLink && (
-									<div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-5">
-										<h3 className="text-lg font-semibold text-white mb-3">3D Model</h3>
-										<a
-											href={modelLink}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-flex items-center underline text-amber-300 hover:text-amber-200"
-										>
-											Open GLB Model
-										</a>
-									</div>
-								)}
+								
 							</div>
 						</div>
 					</div>
