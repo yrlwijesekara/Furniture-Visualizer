@@ -3,14 +3,62 @@ import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 import { OrbitControls } from "three-stdlib";
+import toast from "react-hot-toast";
 import { useDesign } from "../context/DesignContext";
 import { getModelById } from "../utils/modelRegistry";
 import api from "../services/api";
+
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%25' height='100%25' fill='%23f3f4f6'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='Arial' font-size='20'>Furniture</text></svg>";
 
 export default function Viewer3D() {
   const mountRef = useRef(null);
   const navigate = useNavigate();
   const { room, items, designName, setDesignName, updateItem } = useDesign();
+
+  const handleAddToCart = () => {
+    if (!items.length) {
+      toast.error("No furniture in this design to add");
+      return;
+    }
+
+    try {
+      const cart = JSON.parse(localStorage.getItem("furnitureCart")) || [];
+      let addedCount = 0;
+
+      items.forEach((placedItem) => {
+        const model = getModelById(placedItem.modelId);
+        if (!model) {
+          return;
+        }
+
+        const cartId = `model-${model.id}`;
+        const existingIndex = cart.findIndex((cartItem) => cartItem._id === cartId);
+
+        if (existingIndex > -1) {
+          cart[existingIndex].quantity += 1;
+        } else {
+          cart.push({
+            _id: cartId,
+            name: model.name,
+            category: model.category || "Furniture",
+            price: Number(model.price) || 0,
+            quantity: 1,
+            image: model.image || FALLBACK_IMAGE,
+          });
+        }
+
+        addedCount += 1;
+      });
+
+      localStorage.setItem("furnitureCart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      toast.success(`Added ${addedCount} item(s) to cart`);
+    } catch (error) {
+      console.error("Error adding design items to cart:", error);
+      toast.error("Failed to add items to cart");
+    }
+  };
 
   const saveDesign = async () => {
     const designData = { name: designName?.trim() || "My Design", room, items };
@@ -371,17 +419,17 @@ export default function Viewer3D() {
       <div
         style={{
           position: "absolute",
-          top: 70,
-          left: 20,
+          top: 130,
+          right: 20,
           zIndex: 10,
           background: "rgba(0,0,0,0.7)",
           padding: 10,
           borderRadius: 8,
-          width: 260,
+          width: 300,
         }}
       >
         <div style={{ color: "#fff", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
-          Design name
+          3D Design Name
         </div>
         <input
           value={designName || ""}
@@ -405,8 +453,8 @@ export default function Viewer3D() {
         onClick={saveDesign}
         style={{
           position: "absolute",
-          top: 150,
-          left: 20,
+          bottom: 25,
+          right: 150,
           padding: "10px 20px",
           background: "rgba(46, 204, 113, 0.9)",
           color: "#fff",
@@ -419,6 +467,27 @@ export default function Viewer3D() {
         }}
       >
         💾 Save Design
+      </button>
+
+      {/* Add To Cart Button */}
+      <button
+        onClick={handleAddToCart}
+        style={{
+          position: "absolute",
+          bottom: 25,
+          right: 20,
+          padding: "10px 20px",
+          background: "rgba(245, 158, 11, 0.95)",
+          color: "#fff",
+          border: "none",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontSize: 14,
+          fontWeight: 600,
+          zIndex: 10,
+        }}
+      >
+        Add To Cart
       </button>
 
       {/* Info panel */}

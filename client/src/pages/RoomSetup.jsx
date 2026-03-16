@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDesign } from '../context/DesignContext';
 import toast from 'react-hot-toast';
+import Navbar from '../components/Navbar';
 
 export default function RoomSetup() {
   const navigate = useNavigate();
@@ -68,7 +69,10 @@ export default function RoomSetup() {
   };
 
   return (
+    <div style={styles.pageContainer}>
+      <Navbar />
     <div style={styles.container}>
+      
       <div style={styles.card}>
         <h1 style={styles.title}>Room Setup</h1>
         <p style={styles.subtitle}>Configure your room dimensions and colors (all measurements in meters)</p>
@@ -182,10 +186,17 @@ export default function RoomSetup() {
         </form>
       </div>
     </div>
+    </div>
   );
 }
 
 const styles = {
+   pageContainer: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    background: "#1a1a2e",
+  },
   container: {
     minHeight: '100vh',
     display: 'flex',
