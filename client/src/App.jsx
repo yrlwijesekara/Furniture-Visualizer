@@ -22,6 +22,7 @@ import ForgotPassword from './pages/forgottenpassword.jsx';
 import Profile from './pages/profile.jsx';
 import CartPage from './pages/cart.jsx';
 import Furniture from './pages/furniture.jsx';
+import FurnitureOverviewPage from './pages/furnitureoverviewpage.jsx';
 import SavedDesigns from './pages/SavedDesigns.jsx'; // <-- Add this import
 import Reviews from './pages/ReviewPage.jsx';
 
@@ -79,6 +80,9 @@ function App() {
           } />
           <Route path="/furniture" element={
             <Furniture />
+          } />
+          <Route path="/furniture/:furnitureId" element={
+            <FurnitureOverviewPage />
           } />
           <Route path="/register" element={<Registration />} />
           <Route path="/registration" element={<Registration />} />

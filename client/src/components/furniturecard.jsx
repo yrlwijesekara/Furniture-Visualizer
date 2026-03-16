@@ -13,7 +13,7 @@ export default function FurnitureCard(props) {
   // Early return if no furniture data
   if (!furniture || Object.keys(furniture).length === 0) {
     return (
-      <div className="w-full max-w-[400px] h-auto min-h-[450px] rounded-xl shadow-lg border border-gray-200 p-4 flex items-center justify-center bg-white">
+      <div className="w-full max-w-full sm:max-w-100 h-auto min-h-90 sm:min-h-112.5 rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 flex items-center justify-center bg-white">
         <div className="text-center text-gray-500">
           <p>No furniture data available</p>
         </div>
@@ -79,8 +79,8 @@ export default function FurnitureCard(props) {
   };
 
   return (
-    <div className="w-full max-w-[400px] h-auto min-h-[450px] rounded-xl shadow-lg border border-gray-200 p-4 flex flex-col bg-white hover:shadow-xl hover:scale-102 transition-all duration-300 overflow-hidden gap-2">
-      <div className="relative w-full h-48 sm:h-56 lg:h-64 mb-3">
+    <div className="w-full max-w-full sm:max-w-100 h-auto min-h-90 sm:min-h-112.5 rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 flex flex-col bg-white hover:shadow-xl hover:scale-102 transition-all duration-300 overflow-hidden gap-2">
+      <div className="relative w-full h-44 sm:h-56 lg:h-64 mb-2 sm:mb-3">
         {imageLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
@@ -100,17 +100,15 @@ export default function FurnitureCard(props) {
         />
       </div>
       <div className="flex-1 flex flex-col justify-between">
-        <h2 className="text-lg sm:text-xl font-bold mb-2 text-gray-900 line-clamp-2">
+        <h2 className="text-base sm:text-xl font-bold mb-1 sm:mb-2 text-gray-900 line-clamp-2">
           {furniture?.name || "Unnamed Furniture"}
         </h2>
         
-        <div className="space-y-2 mb-3">
+        <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-3">
           <p className="text-gray-700 text-sm sm:text-base">
             <span className="font-medium">Category:</span> {furniture?.category || "Unknown"}
           </p>
-          <p className="text-gray-700 text-sm sm:text-base line-clamp-2">
-            <span className="font-medium">Description:</span> {furniture?.description || "No description"}
-          </p>
+         
           {furniture?.dimensions && (
             <p className="text-gray-700 text-sm sm:text-base">
               <span className="font-medium">Dimensions:</span> {furniture.dimensions}
@@ -119,45 +117,20 @@ export default function FurnitureCard(props) {
         </div>
         
         <div className="mt-auto">
-          <p className="text-xl font-bold text-green-600 mb-3">
-            ${furniture?.price ? furniture.price.toLocaleString() : "0"}
+          <p className="text-lg sm:text-xl font-bold text-green-600 mb-2 sm:mb-3">
+            <span className="text-sm font-medium text-gray-500 pr-2">Price:</span>
+            Rs.{furniture?.price ? furniture.price.toFixed(2) : "0.00"}
           </p>
           
           <div className="space-y-2">
-            <button 
-              className="w-full font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-              disabled={!isLoggedIn}
-              style={{
-                backgroundColor: !isLoggedIn ? '#95a5a6' : '#3498db',
-                color: !isLoggedIn ? '#7f8c8d' : 'white',
-                cursor: !isLoggedIn ? 'not-allowed' : 'pointer',
-                opacity: !isLoggedIn ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (isLoggedIn) {
-                  e.target.style.backgroundColor = '#2980b9';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (isLoggedIn) {
-                  e.target.style.backgroundColor = '#3498db';
-                }
-              }}
-              onClick={() => {
-                if (!isLoggedIn) {
-                  toast.error('Please login first to add to cart');
-                  navigate('/login');
-                  return;
-                }
-                
-                const result = addToCart(furniture);
-                if (!result.success) {
-                  toast.error(result.message);
-                }
-              }}
+            <button
+              className="w-full font-medium py-2 px-4 rounded-lg transition-colors duration-200 border border-slate-300 text-slate-700 hover:bg-slate-100"
+              onClick={() => navigate(`/furniture/${furniture._id}`)}
             >
-              {!isLoggedIn ? "Login to Add to Cart" : "Add to Cart"}
+              View Details
             </button>
+
+            
             
             
             

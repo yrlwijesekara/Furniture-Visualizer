@@ -148,10 +148,10 @@ export default function Furniture() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 justify-items-stretch sm:justify-items-center">
                 {filteredFurniture.length > 0 ? (
                   filteredFurniture.map((item) => (
-                    <div key={item._id} className="w-full max-w-sm">
+                    <div key={item._id} className="w-full max-w-none sm:max-w-sm">
                       <FurnitureCard furniture={item} />
                     </div>
                   ))
