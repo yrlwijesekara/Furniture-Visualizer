@@ -63,7 +63,7 @@ export default function Header() {
           </Link>
           
           <Link
-            to="/editor-2d"
+            to="/room-setup"
             className="font-montserrat font-normal text-[18px] leading-[22px] text-white hover:opacity-80 transition-opacity"
           >
             Design
