@@ -161,14 +161,16 @@ function ReviewPage() {
                     Rate this furniture
                   </label>
                   <div className="flex gap-3">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                    {[1, 2, 3, 4, 5
+
+                    ].map((star) => (
                       <button
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
-                        className="focus:outline-none transition transform hover:scale-110"
+                        className="focus:outline-none transition transform hover:scale-110 "
                       >
                         <FaStar
                           size={32}
@@ -246,7 +248,7 @@ function ReviewPage() {
                               {review.userName}
                             </p>
                             <div className="flex gap-1 mt-1">
-                              {[...Array(10)].map((_, i) => (
+                              {[...Array(5)].map((_, i) => (
                                 <FaStar
                                   key={i}
                                   size={16}
@@ -295,7 +297,7 @@ function ReviewPage() {
                       </div>
 
                       <div className="flex gap-1 mb-2">
-                        {[...Array(10)].map((_, i) => (
+                        {[...Array(5)].map((_, i) => (
                           <FaStar
                             key={i}
                             size={12}

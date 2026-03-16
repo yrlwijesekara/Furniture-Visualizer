@@ -98,7 +98,7 @@ function AdminReviews() {
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
         >
           <option value="">All Ratings</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+          {[1, 2, 3, 4, 5].map((rating) => (
             <option key={rating} value={rating}>
               {rating} Stars
             </option>
@@ -144,7 +144,7 @@ function AdminReviews() {
                   </td>
                   <td className="px-4 py-3 border-b">
                     <div className="flex gap-1">
-                      {[...Array(10)].map((_, i) => (
+                      {[...Array(5)].map((_, i) => (
                         <FaStar
                           key={i}
                           size={14}
