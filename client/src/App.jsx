@@ -12,7 +12,6 @@ import AdminLayout from './admin/adminlayout.jsx';
 import AdminDashboard from './admin/dashboard.jsx';
 import Users from './admin/users';
 import Items from './admin/items.jsx';
-import Requests from './admin/requests.jsx';
 import AdminReviews from './admin/reviews.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
@@ -39,7 +38,6 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="items" element={<Items />} />
-            <Route path="requests" element={<Requests />} />
             <Route path="reviews" element={<AdminReviews />} />
 
           </Route>

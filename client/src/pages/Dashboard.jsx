@@ -8,12 +8,13 @@ import { IoHome, IoChevronForward } from "react-icons/io5";
 import { FaBed } from "react-icons/fa";
 import { PiDeskFill } from "react-icons/pi";
 import { GiSofa } from "react-icons/gi";
-import { MdChairAlt } from "react-icons/md";
+import { MdChairAlt, MdTableRestaurant } from "react-icons/md";
 import Footer from "../components/footer.jsx";
 
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [popularFurniture, setPopularFurniture] = useState([]);
+  
+  // popularFurniture state එක අයින් කලා, ඒක දැන් ඕනේ නෑ
   const [allFurniture, setAllFurniture] = useState([]);
   const [furnitureLoading, setFurnitureLoading] = useState(true);
   const navigate = useNavigate();
@@ -22,22 +23,17 @@ export default function Dashboard() {
     All: <IoHome />,
     Sofa: <GiSofa />,
     Chair: <MdChairAlt />,
-    Table: <PiDeskFill />,
+    Table: <MdTableRestaurant />,
     Desk: <PiDeskFill />,
     Bed: <FaBed />,
-    Bedroom: <FaBed />,
-    "Living Room": <GiSofa />,
-    Dining: <PiDeskFill />,
+    Cupboard: <PiDeskFill />, 
   };
 
   const loadFurniture = useCallback(async () => {
     try {
       setFurnitureLoading(true);
-      const [popular, all] = await Promise.all([
-        furnitureService.getPopular(8),
-        furnitureService.getAll(),
-      ]);
-      setPopularFurniture(popular || []);
+      // getAll() විතරක් call කරනවා
+      const all = await furnitureService.getAll();
       setAllFurniture(all || []);
     } catch (err) {
       console.error("Failed to load furniture", err);
@@ -56,7 +52,9 @@ export default function Dashboard() {
     }
 
     const categoryCount = allFurniture.reduce((acc, item) => {
-      const category = item.category || "Uncategorized";
+      let category = item.category ? item.category.trim().toLowerCase() : "uncategorized";
+      category = category.charAt(0).toUpperCase() + category.slice(1); 
+      
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {});
@@ -84,10 +82,17 @@ export default function Dashboard() {
     const filtered =
       activeCategory === "All"
         ? furnitureArray
-        : furnitureArray.filter((item) => item.category === activeCategory);
+        : furnitureArray.filter((item) => {
+            const itemCat = item.category ? item.category.trim().toLowerCase() : "";
+            const activeCat = activeCategory.trim().toLowerCase();
+            return itemCat === activeCat;
+          });
 
     return limit ? filtered.slice(0, limit) : filtered;
   };
+
+  // අලුත්ම items පෙන්නන්න allFurniture පාවිච්චි කරනවා
+  const itemsToDisplay = getFilteredFurniture(allFurniture, 4);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
@@ -145,7 +150,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* POPULAR PRODUCTS */}
+      {/* POPULAR PRODUCTS (දැන් පෙන්නන්නේ All Furniture වලින් filter වෙලා) */}
       <section className="mx-auto max-w-[1440px] px-4 pb-20 sm:px-8 lg:px-16">
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -185,8 +190,8 @@ export default function Dashboard() {
                 className="h-[420px] animate-pulse rounded-3xl bg-slate-200"
               />
             ))
-          ) : getFilteredFurniture(popularFurniture, 4).length > 0 ? (
-            getFilteredFurniture(popularFurniture, 4).map((item) => (
+          ) : itemsToDisplay.length > 0 ? (
+            itemsToDisplay.map((item) => (
               <FurnitureCard key={item._id} furniture={item} />
             ))
           ) : (
