@@ -87,7 +87,7 @@ export default function Landing() {
       <div className="relative z-20 flex h-full items-center">
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-10 lg:px-16">
           <div className="max-w-[720px] pt-24 sm:pt-28">
-            <p className="mb-4 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[9px] font-semibold tracking-[0.22em] text-[#FBBF24] backdrop-blur-md sm:px-4 sm:text-[10px] md:text-[11px]">
+            <p className="mb-4 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[9px] font-semibold tracking-[0.22em] text-violet-50 backdrop-blur-md sm:px-4 sm:text-[10px] md:text-[11px]">
               {activeSlide.subtitle}
             </p>
 
@@ -101,7 +101,7 @@ export default function Landing() {
 
             <button
               onClick={() => navigate("/furniture")}
-              className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-xl bg-[#FBBF24] px-5 py-3 text-[13px] font-bold text-slate-900 transition hover:bg-[#f5b000] active:scale-[0.98] sm:min-w-[200px] sm:px-6 sm:py-3.5 sm:text-sm md:min-w-[220px] md:px-7 md:py-4 md:text-base shadow-2xl"
+              className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-xl bg-[#2f27ce] px-5 py-3 text-[13px] font-bold text-white transition hover:bg-[#2f27ce] active:scale-[0.98] sm:min-w-[200px] sm:px-6 sm:py-3.5 sm:text-sm md:min-w-[220px] md:px-7 md:py-4 md:text-base shadow-2xl"
             >
               Explore Collection
               <IoChevronForward className="shrink-0 text-[16px] sm:text-[18px]" />
@@ -117,7 +117,7 @@ export default function Landing() {
             onClick={() => setCurrentSlide(i)}
             className={`rounded-full transition-all duration-300 ${
               i === currentSlide
-                ? "h-2.5 w-9 bg-[#FBBF24] sm:w-10"
+                ? "h-2.5 w-9 bg-[#2f27ce] sm:w-10"
                 : "h-2.5 w-2.5 bg-white/50 hover:bg-white/80"
             }`}
             aria-label={`Go to slide ${i + 1}`}

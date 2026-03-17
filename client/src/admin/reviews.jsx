@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback එකතු කළා
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FaStar, FaTrash, FaSearch, FaFilter } from 'react-icons/fa';
@@ -11,14 +11,6 @@ function AdminReviews() {
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState('');
-
-  useEffect(() => {
-    fetchAllReviews();
-  }, []);
-
-  useEffect(() => {
-    filterReviews();
-  }, [reviews, searchTerm, ratingFilter]);
 
   const fetchAllReviews = async () => {
     try {
@@ -36,7 +28,12 @@ function AdminReviews() {
     }
   };
 
-  const filterReviews = () => {
+  useEffect(() => {
+    fetchAllReviews();
+  }, []);
+
+  // filterReviews function එක useCallback හරහා wrap කළා
+  const filterReviews = useCallback(() => {
     let filtered = reviews;
 
     if (searchTerm) {
@@ -53,7 +50,11 @@ function AdminReviews() {
     }
 
     setFilteredReviews(filtered);
-  };
+  }, [reviews, searchTerm, ratingFilter]); // Dependencies මෙතන තියෙනවා
+
+  useEffect(() => {
+    filterReviews();
+  }, [filterReviews]); // දැන් මෙතන filterReviews දැම්මම warning එක එන්නේ නැහැ
 
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm('Are you sure you want to delete this review?')) return;
@@ -120,7 +121,7 @@ function AdminReviews() {
       {/* Count Indicator */}
       <div className="mb-4 flex items-center justify-between px-2">
         <span className="text-[10px] font-black uppercase tracking-widest text-[#050315]/40">
-           Found {filteredReviews.length} results
+            Found {filteredReviews.length} results
         </span>
       </div>
 
