@@ -328,8 +328,8 @@ const Items = () => {
                       <option value="Chair">Chair</option>
                       <option value="Desk">Desk</option>
                       <option value="Cupboard">Cupboard</option>
-                      <option value="Table">Table</option>
                       <option value="Bed">Bed</option>
+                      <option value="Table">Table</option>
                     </select>
                   </div>
                 </div>
