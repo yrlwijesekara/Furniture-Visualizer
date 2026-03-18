@@ -233,14 +233,11 @@ export default function Furniture() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
-  // 1. Data ගන්න එක වෙනම Function එකකට ගත්තා
   const fetchFurniture = useCallback(() => {
     setLoading(true);
     axios.get(import.meta.env.VITE_BACKEND_URL + '/api/furniture/all')
       .then(response => {
         const furnitureData = response.data || [];
-        // අලුත්ම ඒව උඩින් පෙන්නන්න ඕනේ නම් .reverse() කරන්න පුළුවන්:
-        // const sortedData = furnitureData.reverse();
         setFurniture(furnitureData);
         setFilteredFurniture(furnitureData);
       })
@@ -254,25 +251,19 @@ export default function Furniture() {
       });
   }, []);
 
-  // 2. Component එක Load වෙද්දි සහ Event එක එද්දි Data ගන්නවා
   useEffect(() => {
-    // මුලින්ම page එක load වෙද්දි data ගන්නවා
     fetchFurniture();
-
-    // වෙන තැනකින් 'itemAdded' event එක ආවොත් ආයෙත් fetchFurniture() run කරනවා
     const handleItemAdded = () => {
       fetchFurniture();
     };
 
     window.addEventListener('itemAdded', handleItemAdded);
 
-    // Component එක අයින් වෙද්දි Listener එක අයින් කරනවා
     return () => {
       window.removeEventListener('itemAdded', handleItemAdded);
     };
   }, [fetchFurniture]);
 
-  // Filter furniture based on search criteria
   useEffect(() => {
     let filtered = furniture;
 

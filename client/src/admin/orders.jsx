@@ -17,16 +17,10 @@ const Orders = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // 💡 කිසිදු Backend වෙනසක් අවශ්‍ය නැත. 
-      // දැනට පවතින ප්‍රධාන get All Orders (with pagination) route එකටම කතා කරමු.
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/orders?limit=1000`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
-      // getAllOrders Controller එකෙන් එවන structure එක: res.data.data.orders
       const allOrders = res.data?.data?.orders || [];
-      
-      // Frontend එකේදී 'completed' ඒව විතරක් වෙන් කරගන්නවා
       const completedOrders = allOrders.filter(order => order.status === 'completed');
       
       setOrders(completedOrders);

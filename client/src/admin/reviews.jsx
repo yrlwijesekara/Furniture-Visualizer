@@ -212,7 +212,6 @@ function AdminReviews() {
         ))}
       </div>
 
-      {/* Delete Confirmation Modal (අර Users එකේ වගේමයි) */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>

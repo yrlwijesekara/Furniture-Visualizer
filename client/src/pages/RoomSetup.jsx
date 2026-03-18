@@ -72,10 +72,8 @@ export default function RoomSetup() {
     <div className="min-h-screen bg-[#fbfbfe] text-[#050315] font-sans selection:bg-[#2f27ce] selection:text-[#fbfbfe] flex flex-col">
       <Navbar />
       
-      {/* Reduced padding (pt-24 instead of pt-32) so it doesn't push down too much */}
       <div className="flex-1 flex items-center justify-center p-4 pt-24 pb-4">
         
-        {/* Expanded max-w to fit 3 columns nicely, reduced padding to p-6 md:p-8 */}
         <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl shadow-[#050315]/5 border border-[#dedcff]/50">
           <div className="mb-6 text-center">
             <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-1 text-[#050315]">
@@ -87,10 +85,8 @@ export default function RoomSetup() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* W, L, H combined into a 3-column grid to save vertical space */}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Width */}
               <div>
                 <label className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-1 block ml-1">
                   Width (m)
@@ -110,7 +106,6 @@ export default function RoomSetup() {
                 {errors.width && <span className="text-rose-500 text-[10px] font-bold mt-1 ml-1 block">{errors.width}</span>}
               </div>
 
-              {/* Length */}
               <div>
                 <label className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-1 block ml-1">
                   Length (m)
@@ -130,7 +125,6 @@ export default function RoomSetup() {
                 {errors.length && <span className="text-rose-500 text-[10px] font-bold mt-1 ml-1 block">{errors.length}</span>}
               </div>
 
-              {/* Height */}
               <div>
                 <label className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-1 block ml-1">
                   Height (m)
@@ -152,7 +146,6 @@ export default function RoomSetup() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              {/* Wall Color */}
               <div>
                 <label className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-1 block ml-1">
                   Wall Color
@@ -169,7 +162,6 @@ export default function RoomSetup() {
                 </div>
               </div>
 
-              {/* Floor Color */}
               <div>
                 <label className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-1 block ml-1">
                   Floor Color
@@ -187,7 +179,6 @@ export default function RoomSetup() {
               </div>
             </div>
 
-            {/* Room Preview (Reduced height from h-32 to h-20) */}
             <div className="mt-4 p-4 bg-[#fbfbfe] rounded-2xl border border-[#dedcff]/50">
               <h3 className="text-[10px] font-black text-[#050315]/50 uppercase tracking-widest mb-3 text-center">
                 Live Preview
@@ -205,7 +196,6 @@ export default function RoomSetup() {
               </div>
             </div>
 
-            {/* Submit Button (Reduced top margin and padding) */}
             <button 
               type="submit" 
               className="w-full py-3.5 mt-4 bg-[#2f27ce] text-[#fbfbfe] font-bold rounded-xl shadow-lg shadow-[#2f27ce]/30 hover:bg-[#433bff] active:scale-95 transition-all text-sm"

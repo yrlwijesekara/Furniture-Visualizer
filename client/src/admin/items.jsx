@@ -10,7 +10,7 @@ import MediaUpload from '../utils/mediaupload';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://iiwyuylfnxskjqnzgynd.supabase.co';
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // ඔබගේ සම්පූර්ණ Key එක මෙතැනට දාන්න
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const getFinalImage = (imageValue) => {

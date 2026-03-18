@@ -4,7 +4,8 @@ import {
   HiOutlineCube, 
   HiOutlineClock,
   HiOutlineCurrencyDollar,
-  HiOutlineShoppingBag
+  HiOutlineShoppingBag,
+  HiOutlineRefresh 
 } from 'react-icons/hi';
 import axios from 'axios'; 
 
@@ -63,28 +64,23 @@ const AdminDashboard = () => {
         setItems(sortedItems);
       } catch(e) { console.error("Items error:", e); }
 
-      // 3. Fetch Orders & Revenue (ගැටලුව තිබුණු තැන)
+      // 3. Fetch Orders & Revenue
       try {
-          // 💡 නිවැරදි URL එක: /api/admin/orders
           const orderRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/orders?limit=1000`, { headers });
           
-          // Controller එකෙන් එවන structure එක පරිස්සමින් වෙන් කර ගැනීම
           let allOrders = [];
           if (orderRes.data && orderRes.data.data && Array.isArray(orderRes.data.data.orders)) {
-              allOrders = orderRes.data.data.orders; // Pagination structure
+              allOrders = orderRes.data.data.orders; 
           } else if (orderRes.data && Array.isArray(orderRes.data.data)) {
-              allOrders = orderRes.data.data; // Basic array structure
+              allOrders = orderRes.data.data; 
           } else if (Array.isArray(orderRes.data)) {
               allOrders = orderRes.data;
           }
           
-          // Completed Orders පමණක් වෙන් කිරීම
           const completedOrders = allOrders.filter(order => order.status === 'completed');
           
-          // Count එක State එකට දැමීම
           setTotalOrdersCount(completedOrders.length.toString());
           
-          // Revenue එක ගණනය කිරීම
           const revenue = completedOrders.reduce((sum, order) => {
               const price = order.pricing?.total || 0;
               return sum + price;
@@ -168,16 +164,17 @@ const AdminDashboard = () => {
           <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">Admin Dashboard</h2>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">Welcome back, {currentAdminName}! Here's what's happening today.</p>
         </div>
+        
+        {/* 💡 වෙනස් කළ Refresh Button එක */}
         <button 
             onClick={fetchDashboardData}
             disabled={loading}
-            className={`p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all ${loading ? 'animate-spin opacity-50' : ''}`}
+            className="p-2.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm focus:outline-none"
             title="Refresh Data"
         >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
+            <HiOutlineRefresh className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
         </button>
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
