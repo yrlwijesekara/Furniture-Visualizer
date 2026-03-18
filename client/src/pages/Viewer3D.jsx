@@ -192,7 +192,7 @@ export default function Viewer3D() {
     controls.dampingFactor = 0.05;
     controls.minDistance = 1;
     controls.maxDistance = 30;
-    controls.maxPolarAngle = Math.PI * 0.85;
+    controls.maxPolarAngle = Math.PI / 2; // Restricted to stay above ground/eye-level
     controls.update();
 
     // === MOVE / DRAG SUPPORT ===
@@ -239,6 +239,44 @@ export default function Viewer3D() {
       else pos.z = Math.max(minZ, Math.min(maxZ, pos.z));
     };
 
+    // ✅ NEW: Check for collisions with other furniture items
+    const isCollidingWithOthers = (movingGroup, proposedPos) => {
+      const ext1 = movingGroup.userData.__halfExtentsXZ;
+      if (!ext1) return false;
+
+      const box1 = {
+        minX: proposedPos.x - ext1.x,
+        maxX: proposedPos.x + ext1.x,
+        minZ: proposedPos.z - ext1.z,
+        maxZ: proposedPos.z + ext1.z,
+      };
+
+      for (const child of scene.children) {
+        if (child === movingGroup) continue;
+        if (!child.userData || !child.userData.__designItemId) continue;
+
+        const ext2 = child.userData.__halfExtentsXZ;
+        if (!ext2) continue;
+
+        const box2 = {
+          minX: child.position.x - ext2.x,
+          maxX: child.position.x + ext2.x,
+          minZ: child.position.z - ext2.z,
+          maxZ: child.position.z + ext2.z,
+        };
+
+        if (
+          box1.minX < box2.maxX &&
+          box1.maxX > box2.minX &&
+          box1.minZ < box2.maxZ &&
+          box1.maxZ > box2.minZ
+        ) {
+          return true; // Collision detected
+        }
+      }
+      return false;
+    };
+
     const onPointerDown = (e) => {
       if (e.button !== 0) return;
       setMouseFromEvent(e);
@@ -276,7 +314,10 @@ export default function Viewer3D() {
         // ✅ prevent crossing room boundaries
         clampToRoomWithExtents(draggedGroup, next);
 
-        draggedGroup.position.copy(next);
+        // ✅ prevent overlapping with other items
+        if (!isCollidingWithOthers(draggedGroup, next)) {
+          draggedGroup.position.copy(next);
+        }
       }
     };
 
