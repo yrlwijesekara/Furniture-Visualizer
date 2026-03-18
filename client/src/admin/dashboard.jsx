@@ -3,21 +3,22 @@ import {
   HiOutlineUsers, 
   HiOutlineCube, 
   HiOutlineClock,
-  HiOutlineClipboardList,
-  HiOutlineCheckCircle
+  HiOutlineCurrencyDollar,
+  HiOutlineShoppingBag
 } from 'react-icons/hi';
 import axios from 'axios'; 
 
 const AdminDashboard = () => {
   const [showAll, setShowAll] = useState(false);
-  const [userCount, setUserCount] = useState('...'); 
+  const [userCount, setUserCount] = useState('0'); 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // දැනට ලොග් වෙලා ඉන්න Admin ගේ නම තියාගන්න State එකක්
+  const [totalOrdersCount, setTotalOrdersCount] = useState('0');
+  const [totalRevenue, setTotalRevenue] = useState('0.00');
+  
   const [currentAdminName, setCurrentAdminName] = useState('Admin');
 
-  // ලොග් වෙලා ඉන්න කෙනාගේ විස්තර ගන්න Function එක
   useEffect(() => {
     const fetchAdminProfile = async () => {
       try {
@@ -39,27 +40,63 @@ const AdminDashboard = () => {
     fetchAdminProfile();
   }, []);
 
-  // Dashboard Data ගන්න Function එක
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const userRes = await axios.get(import.meta.env.VITE_BACKEND_URL + '/api/admin/users');
-      setUserCount(userRes.data.length.toString());
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
 
-      const itemRes = await axios.get(import.meta.env.VITE_BACKEND_URL + '/api/furniture/all');
-      
-      const sortedItems = itemRes.data.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.updatedAt || 0);
-          const dateB = new Date(b.createdAt || b.updatedAt || 0);
-          return dateB - dateA; 
-      });
-      
-      setItems(sortedItems);
+      // 1. Fetch Users
+      try {
+        const userRes = await axios.get(import.meta.env.VITE_BACKEND_URL + '/api/admin/users', { headers });
+        setUserCount(userRes.data.length.toString());
+      } catch(e) { console.error("Users error:", e); }
+
+      // 2. Fetch Items (Furniture)
+      try {
+        const itemRes = await axios.get(import.meta.env.VITE_BACKEND_URL + '/api/furniture/all');
+        const sortedItems = itemRes.data.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.updatedAt || 0);
+            const dateB = new Date(b.createdAt || b.updatedAt || 0);
+            return dateB - dateA; 
+        });
+        setItems(sortedItems);
+      } catch(e) { console.error("Items error:", e); }
+
+      // 3. Fetch Orders & Revenue (ගැටලුව තිබුණු තැන)
+      try {
+          // 💡 නිවැරදි URL එක: /api/admin/orders
+          const orderRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/orders?limit=1000`, { headers });
+          
+          // Controller එකෙන් එවන structure එක පරිස්සමින් වෙන් කර ගැනීම
+          let allOrders = [];
+          if (orderRes.data && orderRes.data.data && Array.isArray(orderRes.data.data.orders)) {
+              allOrders = orderRes.data.data.orders; // Pagination structure
+          } else if (orderRes.data && Array.isArray(orderRes.data.data)) {
+              allOrders = orderRes.data.data; // Basic array structure
+          } else if (Array.isArray(orderRes.data)) {
+              allOrders = orderRes.data;
+          }
+          
+          // Completed Orders පමණක් වෙන් කිරීම
+          const completedOrders = allOrders.filter(order => order.status === 'completed');
+          
+          // Count එක State එකට දැමීම
+          setTotalOrdersCount(completedOrders.length.toString());
+          
+          // Revenue එක ගණනය කිරීම
+          const revenue = completedOrders.reduce((sum, order) => {
+              const price = order.pricing?.total || 0;
+              return sum + price;
+          }, 0);
+          
+          setTotalRevenue(revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      } catch (orderErr) {
+          console.error("Error fetching order stats:", orderErr);
+      }
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      setUserCount('0');
-      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -95,18 +132,18 @@ const AdminDashboard = () => {
       shadow: 'shadow-purple-100'
     },
     { 
-      label: 'Pending Req', 
-      value: '12', 
-      icon: <HiOutlineClipboardList size={28} />, 
-      color: 'from-amber-500 to-orange-600',
-      shadow: 'shadow-orange-100'
-    },
-    { 
-      label: 'Complete Req', 
-      value: '45', 
-      icon: <HiOutlineCheckCircle size={28} />, 
+      label: 'Completed Orders', 
+      value: totalOrdersCount, 
+      icon: <HiOutlineShoppingBag size={28} />, 
       color: 'from-emerald-500 to-teal-600',
       shadow: 'shadow-teal-100'
+    },
+    { 
+      label: 'Total Revenue', 
+      value: `Rs. ${totalRevenue}`, 
+      icon: <HiOutlineCurrencyDollar size={28} />, 
+      color: 'from-amber-500 to-orange-600',
+      shadow: 'shadow-orange-100'
     },
   ];
 
@@ -153,13 +190,15 @@ const AdminDashboard = () => {
               {React.cloneElement(stat.icon, { size: 110 })}
             </div>
             
-            <div className="relative z-10 flex items-center gap-5">
-              <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md shrink-0">
+            <div className="relative z-10 flex items-start flex-col gap-4">
+              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md w-fit">
                 {stat.icon}
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-medium opacity-80 uppercase tracking-widest">{stat.label}</h3>
-                <p className="text-3xl sm:text-4xl font-bold mt-1 tracking-tight">{loading ? '...' : stat.value}</p>
+                <h3 className="text-xs font-bold opacity-80 uppercase tracking-widest mb-1">{stat.label}</h3>
+                <p className={`${stat.label === 'Total Revenue' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold tracking-tight truncate`}>
+                    {loading ? '...' : stat.value}
+                </p>
               </div>
             </div>
           </div>
