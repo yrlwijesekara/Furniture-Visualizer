@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaTrash, FaShoppingCart, FaPlus, FaMinus } from 'react-icons/fa';
 import Navbar from "../components/Navbar";
 import { useDesign } from '../context/DesignContext';
@@ -10,7 +10,10 @@ export default function Cart() {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const location = useLocation();
+    const processingPayPalReturnRef = useRef(false);
     const { room } = useDesign();
+    const PENDING_ORDER_KEY = 'pendingFurnitureOrder';
     
     // Order form state
     const [showOrderForm, setShowOrderForm] = useState(false);
@@ -30,6 +33,68 @@ export default function Cart() {
     });
     const [submittingOrder, setSubmittingOrder] = useState(false);
 
+    const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const taxAmount = cartTotal * 0.08; 
+    const finalTotal = cartTotal + taxAmount;
+
+    const clamp = (value, min, max, fallback) => {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return fallback;
+        return Math.min(max, Math.max(min, num));
+    };
+
+    const normalizeHexColor = (value, fallback) => {
+        const color = String(value || '').trim();
+        const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        return hexColorRegex.test(color) ? color : fallback;
+    };
+
+    const normalizeItemImage = (imageValue) => {
+        if (Array.isArray(imageValue)) {
+            return imageValue.find((img) => typeof img === 'string' && img.trim().length > 0) || '';
+        }
+        return typeof imageValue === 'string' ? imageValue : '';
+    };
+
+    const buildOrderData = () => {
+        const normalizedRoomSetup = {
+            width: clamp(orderFormData.roomWidth, 1, 20, 5),
+            length: clamp(orderFormData.roomLength, 1, 20, 5),
+            height: clamp(orderFormData.roomHeight, 2, 5, 3),
+            wallColor: normalizeHexColor(orderFormData.wallColor, '#ffffff'),
+            floorColor: normalizeHexColor(orderFormData.floorColor, '#f5f5f5')
+        };
+
+        return {
+        customer: {
+            name: orderFormData.customerName,
+            email: orderFormData.email,
+            phone: orderFormData.phone,
+            address: {
+                street: orderFormData.address,
+                city: orderFormData.city,
+                zipCode: orderFormData.zipCode
+            }
+        },
+        roomSetup: normalizedRoomSetup,
+        items: cartItems.map((item) => ({
+            _id: String(item?._id || ''),
+            name: String(item?.name || 'Furniture Item'),
+            price: Number(item?.price) || 0,
+            quantity: Math.max(1, Number(item?.quantity) || 1),
+            category: item?.category ? String(item.category) : undefined,
+            image: normalizeItemImage(item?.image)
+        })),
+        pricing: {
+            subtotal: cartTotal,
+            tax: taxAmount,
+            total: finalTotal
+        },
+        notes: orderFormData.notes,
+        orderDate: new Date().toISOString()
+    };
+    };
+
     useEffect(() => {
         loadCartItems();
         const handleCartUpdate = () => {
@@ -40,6 +105,77 @@ export default function Cart() {
             window.removeEventListener('cartUpdated', handleCartUpdate);
         };
     }, []);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const paypalOrderId = params.get('token');
+        const cancelled = params.get('paypal') === 'cancel';
+
+        if (cancelled) {
+            toast.error('PayPal payment was cancelled');
+            navigate('/cart', { replace: true });
+            return;
+        }
+
+        if (!paypalOrderId || processingPayPalReturnRef.current) {
+            return;
+        }
+
+        const finalizePayPalPayment = async () => {
+            processingPayPalReturnRef.current = true;
+            setSubmittingOrder(true);
+
+            try {
+                const pendingRaw = sessionStorage.getItem(PENDING_ORDER_KEY);
+                if (!pendingRaw) {
+                    throw new Error('No pending order found for this payment');
+                }
+
+                const pendingData = JSON.parse(pendingRaw);
+                const orderData = pendingData?.orderData;
+
+                if (!orderData) {
+                    throw new Error('Pending order data is invalid');
+                }
+
+                const apiUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+                const authHeaders = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+
+                await axios.post(
+                    `${apiUrl}/api/admin/orders/paypal/capture`,
+                    { orderId: paypalOrderId },
+                    { headers: authHeaders }
+                );
+
+                await axios.post(
+                    `${apiUrl}/api/admin/orders`,
+                    orderData,
+                    { headers: authHeaders }
+                );
+
+                sessionStorage.removeItem(PENDING_ORDER_KEY);
+                localStorage.removeItem('furnitureCart');
+                setCartItems([]);
+                setShowOrderForm(false);
+                window.dispatchEvent(new Event('cartUpdated'));
+                toast.success('Payment successful! Order submitted.');
+            } catch (error) {
+                console.error('Error finalizing PayPal payment:', error);
+                const serverMessage = error?.response?.data?.message;
+                const validationErrors = error?.response?.data?.errors;
+                const detailedMessage = Array.isArray(validationErrors) && validationErrors.length > 0
+                    ? `${serverMessage || 'Validation error'}: ${validationErrors[0]}`
+                    : (serverMessage || error?.message || 'Failed to finalize PayPal payment');
+                toast.error(detailedMessage);
+            } finally {
+                setSubmittingOrder(false);
+                processingPayPalReturnRef.current = false;
+                navigate('/cart', { replace: true });
+            }
+        };
+
+        finalizePayPalPayment();
+    }, [location.search, navigate]);
 
     const loadCartItems = () => {
         try {
@@ -111,54 +247,54 @@ export default function Cart() {
             toast.error('Please fill in all required fields');
             return;
         }
+
+        if (cartItems.length === 0) {
+            toast.error('Your cart is empty');
+            return;
+        }
+
         setSubmittingOrder(true);
         try {
-            const orderData = {
-                customer: {
-                    name: orderFormData.customerName,
-                    email: orderFormData.email,
-                    phone: orderFormData.phone,
-                    address: {
-                        street: orderFormData.address,
-                        city: orderFormData.city,
-                        zipCode: orderFormData.zipCode
-                    }
-                },
-                roomSetup: {
-                    width: orderFormData.roomWidth,
-                    length: orderFormData.roomLength,
-                    height: orderFormData.roomHeight,
-                    wallColor: orderFormData.wallColor,
-                    floorColor: orderFormData.floorColor
-                },
-                items: cartItems,
-                pricing: {
-                    subtotal: cartTotal,
-                    tax: taxAmount,
-                    total: finalTotal
-                },
-                notes: orderFormData.notes,
-                orderDate: new Date().toISOString()
-            };
+            const orderData = buildOrderData();
             const apiUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-            await axios.post(`${apiUrl}/api/admin/orders`, orderData, {
+            const returnUrl = `${window.location.origin}/cart`;
+            const cancelUrl = `${window.location.origin}/cart?paypal=cancel`;
+
+            sessionStorage.setItem(PENDING_ORDER_KEY, JSON.stringify({ orderData, createdAt: Date.now() }));
+
+            const response = await axios.post(`${apiUrl}/api/admin/orders/paypal/create`, {
+                total: Number(finalTotal).toFixed(2),
+                currency: 'LKR',
+                returnUrl,
+                cancelUrl
+            }, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
-            localStorage.removeItem('furnitureCart');
-            setCartItems([]);
-            setShowOrderForm(false);
-            toast.success('Order submitted successfully!');
-            window.dispatchEvent(new Event('cartUpdated'));
-        } catch {
-            toast.error('Failed to submit order.');
+
+            const payableCurrency = response?.data?.data?.payableCurrency;
+            const payableTotal = response?.data?.data?.payableTotal;
+            if (payableCurrency && payableTotal) {
+                toast.success(`Redirecting to PayPal (${payableCurrency} ${payableTotal})...`);
+            }
+
+            const approvalUrl = response?.data?.data?.approvalUrl;
+            if (!approvalUrl) {
+                throw new Error('PayPal approval URL not received');
+            }
+
+            window.location.href = approvalUrl;
+        } catch (error) {
+            sessionStorage.removeItem(PENDING_ORDER_KEY);
+            const serverMessage = error?.response?.data?.message;
+            const validationErrors = error?.response?.data?.errors;
+            const detailedMessage = Array.isArray(validationErrors) && validationErrors.length > 0
+                ? `${serverMessage || 'Validation error'}: ${validationErrors[0]}`
+                : (serverMessage || error?.message || 'Failed to start PayPal checkout');
+            toast.error(detailedMessage);
         } finally {
             setSubmittingOrder(false);
         }
     };
-
-    const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const taxAmount = cartTotal * 0.08; 
-    const finalTotal = cartTotal + taxAmount;
 
     if (loading) {
         return (
@@ -325,7 +461,7 @@ export default function Cart() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <button type="button" onClick={() => setShowOrderForm(false)} className="px-4 py-3.5 bg-white text-[#050315] border-2 border-[#dedcff] font-bold rounded-xl hover:bg-[#fbfbfe] transition-all">Cancel</button>
                                         <button type="submit" disabled={submittingOrder} className="px-4 py-3.5 bg-[#2f27ce] text-white font-black rounded-xl hover:bg-[#433bff] transition-all shadow-lg shadow-[#2f27ce]/20 disabled:opacity-50">
-                                            {submittingOrder ? 'Processing...' : 'Confirm Order'}
+                                            {submittingOrder ? 'Processing...' : 'Pay with PayPal'}
                                         </button>
                                     </div>
                                 </div>
