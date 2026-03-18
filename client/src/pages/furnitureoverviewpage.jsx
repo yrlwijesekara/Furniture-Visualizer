@@ -4,10 +4,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import ImageSlider from "../components/imageslider";
+import { useDesign } from "../context/DesignContext";
 
 export default function FurnitureOverviewPage() {
     const { furnitureId } = useParams();
     const navigate = useNavigate();
+    const { room, setItems, setSelectedItemId, setDesignName } = useDesign();
 
     const [item, setItem] = useState(null);
     const [status, setStatus] = useState("loading");
@@ -105,6 +107,44 @@ export default function FurnitureOverviewPage() {
         return Array.isArray(item.image) ? item.image.filter(Boolean) : [item.image];
     }, [item]);
 
+    const normalizeModelPath = (rawPath) => {
+        if (!rawPath || typeof rawPath !== "string") {
+            return null;
+        }
+
+        if (rawPath.startsWith("http://") || rawPath.startsWith("https://")) {
+            return rawPath;
+        }
+
+        const normalized = rawPath.replace(/\\/g, "/");
+        const uploadIndex = normalized.indexOf("/uploads/");
+        const modelPath = uploadIndex >= 0 ? normalized.slice(uploadIndex) : normalized;
+
+        if (!modelPath) {
+            return null;
+        }
+
+        if (modelPath.startsWith("/")) {
+            return `${import.meta.env.VITE_BACKEND_URL}${modelPath}`;
+        }
+
+        return `${import.meta.env.VITE_BACKEND_URL}/${modelPath}`;
+    };
+
+    const getPreviewSizeByCategory = (category) => {
+        const key = String(category || "").toLowerCase();
+        const sizeByCategory = {
+            sofa: { w: 2.1, d: 0.95, h: 0.85 },
+            chair: { w: 0.6, d: 0.6, h: 0.95 },
+            desk: { w: 1.4, d: 0.7, h: 0.75 },
+            cupboard: { w: 1.6, d: 0.6, h: 2.1 },
+            table: { w: 1.4, d: 0.8, h: 0.75 },
+            bed: { w: 1.8, d: 2.1, h: 0.7 }
+        };
+
+        return sizeByCategory[key] || { w: 1.2, d: 1.2, h: 1.0 };
+    };
+
     const totalPrice = (item?.price || 0) * quantity;
 
     const handleAddToCart = () => {
@@ -140,6 +180,44 @@ export default function FurnitureOverviewPage() {
 
         handleAddToCart();
         navigate("/cart");
+    };
+
+    const handleViewIn3D = () => {
+        if (!item) {
+            toast.error("Furniture item is not ready yet");
+            return;
+        }
+
+        const modelPath = normalizeModelPath(item.model3DUrl);
+        if (!modelPath) {
+            toast.error("3D model is not available for this item");
+            return;
+        }
+
+        const previewItemId = `preview-${item._id || Date.now()}`;
+        const previewItem = {
+            id: previewItemId,
+            modelId: null,
+            x: room.width / 2,
+            z: room.length / 2,
+            rotation: 0,
+            scale: 1,
+            sourceFurnitureId: item._id,
+            customModel: {
+                name: item.name || "Furniture",
+                category: String(item.category || "furniture").toLowerCase(),
+                modelPath,
+                size: getPreviewSizeByCategory(item.category),
+                defaultRotationY: 0,
+                price: Number(item.price) || 0,
+                image: Array.isArray(item.image) ? item.image[0] : item.image || null
+            }
+        };
+
+        setItems([previewItem]);
+        setSelectedItemId(previewItemId);
+        setDesignName(`${item.name || "Furniture"} Preview`);
+        navigate("/viewer-3d");
     };
 
     return (
@@ -255,7 +333,7 @@ export default function FurnitureOverviewPage() {
                                         </button>
 
                                         <button
-                                            onClick={() => navigate("/viewer-3d")}
+                                            onClick={handleViewIn3D}
                                             className="w-full font-medium py-3 rounded-xl border-2 border-[#dedcff] text-[#050315] hover:bg-white/10 transition-colors duration-200 flex items-center justify-center gap-2 text-sm md:col-span-2 lg:col-span-1"
                                         >
                                             View in 3D <span className="text-xl leading-none">&rarr;</span>

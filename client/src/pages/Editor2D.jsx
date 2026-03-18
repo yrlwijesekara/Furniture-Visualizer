@@ -879,13 +879,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDesign } from "../context/DesignContext";
-import {
-  getModelById,
-  getFurnitureModels,
-  getFurnitureCategories,
-} from "../utils/modelRegistry";
+import { getModelById } from "../utils/modelRegistry";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
+import api from "../services/api";
 
 // Constants (Logic stays exactly the same)
 const CANVAS_WIDTH = 800;
@@ -893,6 +890,63 @@ const CANVAS_HEIGHT = 600;
 const GRID_SIZE_METERS = 0.1; // 10cm grid
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.0;
+
+const DEFAULT_MODEL_SIZE = { w: 1.2, d: 1.2, h: 1.0 };
+
+const getCategoryDefaultSize = (category) => {
+  const key = String(category || "").toLowerCase();
+  const sizeMap = {
+    sofa: { w: 2.1, d: 0.95, h: 0.85 },
+    chair: { w: 0.6, d: 0.6, h: 0.95 },
+    desk: { w: 1.4, d: 0.7, h: 0.75 },
+    cupboard: { w: 1.6, d: 0.6, h: 2.1 },
+    table: { w: 1.4, d: 0.8, h: 0.75 },
+    bed: { w: 1.8, d: 2.1, h: 0.7 },
+  };
+
+  return sizeMap[key] || DEFAULT_MODEL_SIZE;
+};
+
+const normalizeModelPath = (rawPath) => {
+  if (!rawPath || typeof rawPath !== "string") {
+    return null;
+  }
+
+  if (rawPath.startsWith("http://") || rawPath.startsWith("https://")) {
+    return rawPath;
+  }
+
+  const normalized = rawPath.replace(/\\/g, "/");
+  const uploadIndex = normalized.indexOf("/uploads/");
+  const modelPath = uploadIndex >= 0 ? normalized.slice(uploadIndex) : normalized;
+
+  if (!modelPath) {
+    return null;
+  }
+
+  if (modelPath.startsWith("/")) {
+    return `${import.meta.env.VITE_BACKEND_URL}${modelPath}`;
+  }
+
+  return `${import.meta.env.VITE_BACKEND_URL}/${modelPath}`;
+};
+
+const resolveDesignItemModel = (item) => {
+  if (item?.customModel?.modelPath) {
+    return {
+      id: item.customModel.id || `custom-${item.id}`,
+      name: item.customModel.name || "Furniture",
+      category: item.customModel.category || "furniture",
+      size: item.customModel.size || DEFAULT_MODEL_SIZE,
+      defaultRotationY: item.customModel.defaultRotationY || 0,
+      modelPath: item.customModel.modelPath,
+      price: Number(item.customModel.price) || 0,
+      image: item.customModel.image || null,
+    };
+  }
+
+  return getModelById(item?.modelId);
+};
 
 export default function Editor2D() {
   const navigate = useNavigate();
@@ -914,6 +968,49 @@ export default function Editor2D() {
   const [placingModelId, setPlacingModelId] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
+  const [adminModels, setAdminModels] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAdminModels = async () => {
+      try {
+        setModelsLoading(true);
+        const response = await api.get("/furniture/all");
+        const list = Array.isArray(response.data) ? response.data : [];
+
+        const normalizedModels = list
+          .map((entry) => {
+            const modelPath = normalizeModelPath(entry?.model3DUrl);
+            if (!entry?._id || !modelPath) {
+              return null;
+            }
+
+            return {
+              id: `admin-${entry._id}`,
+              sourceFurnitureId: entry._id,
+              name: entry.name || "Furniture",
+              category: String(entry.category || "furniture").toLowerCase(),
+              size: getCategoryDefaultSize(entry.category),
+              defaultRotationY: 0,
+              modelPath,
+              price: Number(entry.price) || 0,
+              image: Array.isArray(entry.image) ? entry.image[0] : entry.image || null,
+            };
+          })
+          .filter(Boolean);
+
+        setAdminModels(normalizedModels);
+      } catch (error) {
+        console.error("Failed to load admin furniture models:", error);
+        toast.error("Failed to load furniture models from admin panel");
+        setAdminModels([]);
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    fetchAdminModels();
+  }, []);
 
   // Calculate scale: pixels per meter
   const scaleX = CANVAS_WIDTH / room.width;
@@ -968,8 +1065,11 @@ export default function Editor2D() {
   };
 
   // Get furniture models filtered by category
-  const furnitureModels = getFurnitureModels();
-  const categories = ["all", ...getFurnitureCategories()];
+  const furnitureModels = adminModels;
+  const categories = [
+    "all",
+    ...Array.from(new Set(furnitureModels.map((model) => model.category))),
+  ];
   const filteredModels =
     categoryFilter === "all"
       ? furnitureModels
@@ -984,7 +1084,13 @@ export default function Editor2D() {
     const py = e.clientY - rect.top;
     const { x, z } = pixelsToMeters(px, py);
 
-    const model = getModelById(placingModelId);
+    const model = furnitureModels.find((entry) => entry.id === placingModelId);
+    if (!model) {
+      toast.error("Selected model is no longer available");
+      setPlacingModelId(null);
+      return;
+    }
+
     const snappedX = snapToGrid(x);
     const snappedZ = snapToGrid(z);
 
@@ -994,11 +1100,22 @@ export default function Editor2D() {
     }
 
     addItem({
-      modelId: placingModelId,
+      modelId: null,
       x: snappedX,
       z: snappedZ,
       rotation: 0,
       scale: 1,
+      sourceFurnitureId: model.sourceFurnitureId,
+      customModel: {
+        id: model.id,
+        name: model.name,
+        category: model.category,
+        modelPath: model.modelPath,
+        size: model.size,
+        defaultRotationY: model.defaultRotationY || 0,
+        price: model.price,
+        image: model.image,
+      },
     });
 
     toast.success(
@@ -1017,10 +1134,6 @@ export default function Editor2D() {
     const { px, py } = metersToPixels(item.x, item.z);
     setDragOffset({
       x: e.clientX - rect.left - px,
-      y: e.clientY - top - py, // Note: e.clientY - rect.top - py is the correct math, simplifying to match logic
-    });
-    setDragOffset({
-      x: e.clientX - rect.left - px,
       y: e.clientY - rect.top - py,
     });
   };
@@ -1035,7 +1148,7 @@ export default function Editor2D() {
     const { x, z } = pixelsToMeters(px, py);
 
     const item = items.find((i) => i.id === selectedItemId);
-    const model = getModelById(item?.modelId);
+    const model = resolveDesignItemModel(item);
 
     const snappedX = snapToGrid(x);
     const snappedZ = snapToGrid(z);
@@ -1079,7 +1192,7 @@ export default function Editor2D() {
   const handleDelete = () => {
     if (!selectedItemId) return;
     const item = items.find((i) => i.id === selectedItemId);
-    const model = getModelById(item?.modelId);
+    const model = resolveDesignItemModel(item);
     deleteItem(selectedItemId);
     toast.success(`Deleted ${model?.name || "item"}`);
   };
@@ -1102,7 +1215,7 @@ export default function Editor2D() {
   }, [selectedItemId, items]);
 
   const selectedItem = items.find((i) => i.id === selectedItemId);
-  const selectedModel = selectedItem ? getModelById(selectedItem.modelId) : null;
+  const selectedModel = selectedItem ? resolveDesignItemModel(selectedItem) : null;
 
   return (
     <div className="h-screen bg-[#fbfbfe] text-[#050315] font-sans flex flex-col selection:bg-[#2f27ce] selection:text-[#fbfbfe] overflow-hidden">
@@ -1134,6 +1247,18 @@ export default function Editor2D() {
 
           {/* Furniture List */}
           <div className="flex flex-col gap-3">
+            {modelsLoading && (
+              <div className="p-4 rounded-xl border border-[#dedcff] bg-[#fbfbfe] text-xs font-bold text-[#050315]/50 uppercase tracking-widest text-center">
+                Loading models...
+              </div>
+            )}
+
+            {!modelsLoading && filteredModels.length === 0 && (
+              <div className="p-4 rounded-xl border border-[#dedcff] bg-[#fbfbfe] text-xs font-bold text-[#050315]/50 uppercase tracking-widest text-center">
+                No admin models found
+              </div>
+            )}
+
             {filteredModels.map((model) => (
               <div
                 key={model.id}
@@ -1155,7 +1280,7 @@ export default function Editor2D() {
           {placingModelId && (
             <div className="mt-6 p-5 bg-[#dedcff]/40 border border-[#dedcff] rounded-2xl text-center">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#050315]/50 mb-2">Placing Item</p>
-              <p className="text-sm font-black text-[#2f27ce] mb-4">{getModelById(placingModelId)?.name}</p>
+              <p className="text-sm font-black text-[#2f27ce] mb-4">{furnitureModels.find((entry) => entry.id === placingModelId)?.name}</p>
               <button
                 onClick={() => setPlacingModelId(null)}
                 className="w-full py-2.5 bg-white border-2 border-rose-200 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-50 hover:border-rose-300 transition-colors"
@@ -1169,7 +1294,7 @@ export default function Editor2D() {
         {/* Center - Canvas */}
         <div className="flex-1 flex flex-col p-6 items-center justify-center bg-[#fbfbfe] relative overflow-hidden">
           
-          <div className="w-[800px] flex justify-between items-end mb-4">
+          <div className="w-200 flex justify-between items-end mb-4">
             <h2 className="text-2xl font-black tracking-tight text-[#050315]">2D Floor Plan</h2>
             <div className="text-xs font-bold text-[#050315]/60 bg-[#dedcff]/50 px-4 py-1.5 rounded-full border border-[#dedcff]">
               Room: {room.width}m × {room.length}m <span className="mx-2 opacity-50">|</span> 1m = {pixelsPerMeter.toFixed(0)}px
@@ -1190,7 +1315,7 @@ export default function Editor2D() {
           >
             {/* Out of bounds indicator */}
             {isOutOfBounds && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-rose-500 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg z-[1000] animate-pulse">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-rose-500 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg z-1000 animate-pulse">
                 Boundary Warning
               </div>
             )}
@@ -1242,7 +1367,7 @@ export default function Editor2D() {
 
             {/* Placed Items */}
             {items.map((item) => {
-              const model = getModelById(item.modelId);
+              const model = resolveDesignItemModel(item);
               const { px, py } = metersToPixels(item.x, item.z);
               const itemW = (model?.size?.w || 0.5) * pixelsPerMeter * item.scale;
               const itemH = (model?.size?.d || 0.5) * pixelsPerMeter * item.scale;
@@ -1302,7 +1427,7 @@ export default function Editor2D() {
           </div>
 
           {/* Canvas Actions */}
-          <div className="flex justify-between items-center w-full max-w-[800px] mt-6">
+          <div className="flex justify-between items-center w-full max-w-200 mt-6">
             <button
               onClick={clearItems}
               className="px-5 py-3 bg-white border-2 border-[#dedcff] text-[#050315] hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 rounded-xl font-bold text-sm transition-colors"

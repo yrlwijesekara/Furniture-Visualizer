@@ -74,6 +74,9 @@ export default function Header() {
 
         {/* Right Icons */}
         <div className={`flex items-center gap-5 z-[110] transition-colors duration-300 ${textColorClass}`}>
+           <Link to="/cart" className="hover:text-[#2f27ce] transition-all hover:scale-110 relative">
+            <IoBagHandleOutline size={24} />
+          </Link>
           <div className="hidden lg:flex items-center gap-5">
             {isLoggedIn ? (
               <button onClick={handleLogout} className="hover:text-[#2f27ce] transition-all hover:scale-110">
@@ -85,9 +88,7 @@ export default function Header() {
               </Link>
             )}
           </div>
-          <Link to="/cart" className="hover:text-[#2f27ce] transition-all hover:scale-110 relative">
-            <IoBagHandleOutline size={24} />
-          </Link>
+         
 
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-1 transition-colors hover:text-[#2f27ce]">
             {isMobileMenuOpen ? <IoCloseOutline size={30} /> : <IoMenuOutline size={30} />}
