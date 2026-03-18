@@ -8,6 +8,7 @@ import { useDesign } from "../context/DesignContext";
 import { getModelById } from "../utils/modelRegistry";
 import api from "../services/api";
 
+
 const FALLBACK_IMAGE =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%25' height='100%25' fill='%23f3f4f6'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='Arial' font-size='20'>Furniture</text></svg>";
 
@@ -77,6 +78,7 @@ export default function Viewer3D() {
       localStorage.setItem("furnitureCart", JSON.stringify(cart));
       window.dispatchEvent(new Event("cartUpdated"));
       toast.success(`Added ${addedCount} item(s) to cart`);
+      navigate("/cart");
     } catch (error) {
       console.error("Error adding design items to cart:", error);
       toast.error("Failed to add items to cart");
@@ -552,6 +554,7 @@ export default function Viewer3D() {
       {/* Add To Cart Button */}
       <button
         onClick={handleAddToCart}
+        
         style={{
           position: "absolute",
           bottom: 25,
@@ -568,6 +571,7 @@ export default function Viewer3D() {
         }}
       >
         Add To Cart
+        
       </button>
 
       {/* Info panel */}

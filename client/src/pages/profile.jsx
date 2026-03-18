@@ -366,7 +366,7 @@ export default function Profile() {
                             ) : (
                                 <div className="space-y-6">
                                     {filteredOrders.map(order => (
-                                        <div key={order._id} className="p-6 bg-white rounded-2xl border-2 border-[#dedcff]/50 hover:border-[#433bff]/50 transition-all shadow-sm">
+                                        <div key={order._id} className="p-2 bg-white rounded-xl border-2 border-[#dedcff]/50 hover:border-[#433bff]/50 transition-all shadow-sm">
                                             <div className="flex flex-col md:flex-row justify-between gap-4 mb-6 pb-4 border-b border-[#dedcff]/30">
                                                 <div>
                                                     <p className="text-[10px] font-black text-[#050315]/40 uppercase tracking-widest mb-1">Order ID</p>
@@ -379,8 +379,8 @@ export default function Profile() {
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[#fbfbfe] rounded-xl border border-[#dedcff]/50">
                                                 <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Items</p><p className="font-black text-sm text-[#050315]">{order.items.length}</p></div>
-                                                <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Total</p><p className="font-black text-lg text-[#2f27ce]">${order.pricing.total.toFixed(2)}</p></div>
-                                                <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Tax</p><p className="font-black text-sm text-[#050315]/60">${order.pricing.tax.toFixed(2)}</p></div>
+                                                <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Total</p><p className="font-black text-lg text-[#2f27ce]">Rs.{order.pricing.total.toFixed(2)}</p></div>
+                                                <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Tax</p><p className="font-black text-sm text-[#050315]/60">Rs.{order.pricing.tax.toFixed(2)}</p></div>
                                                 <div><p className="text-[9px] font-black text-[#050315]/40 uppercase mb-1">Room</p><p className="font-black text-xs text-[#050315]">{order.roomSetup.width}x{order.roomSetup.length}m</p></div>
                                             </div>
                                         </div>
